@@ -3,6 +3,7 @@ module github.com/luvsic3/share
 go 1.16
 
 require (
+	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/mdp/qrterminal/v3 v3.0.0
 	github.com/spf13/cobra v1.2.1
