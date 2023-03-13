@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,23 +17,68 @@ package cmd
 
 import (
 	"fmt"
+	"log"
+	"net"
+	"net/http"
 	"os"
+	"path"
 
+	"github.com/mdp/qrterminal/v3"
 	"github.com/spf13/cobra"
-
-	"github.com/spf13/viper"
 )
 
-var cfgFile string
+const port = ":8080"
+const protocol = "http://"
+
+type any = interface{}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "go-gopher-cli",
-	Short: "Gopher CLI in Go",
-	Long:  `Gopher CLI application written in Go.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	Use:   "go-share",
+	Short: "Share files",
+	Long:  `Share files.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) == 0 {
+			ExitWithError("Must provide directory path")
+		}
+
+		var argDir = args[0]
+		workDir, err := os.Getwd()
+
+		if err != nil {
+			ExitWithError(err)
+		}
+
+		var targetDir = path.Join(workDir, argDir)
+		info, err := os.Stat(targetDir)
+		if err != nil {
+			ExitWithError(err)
+		}
+
+		if !info.IsDir() {
+			ExitWithError("Given path is not a directory")
+		}
+		cmd.Println("Scan the QR-Code to access:", targetDir, "directory on your phone")
+		cmd.Println()
+
+		ip := GetOutboundIP()
+		url := protocol + ip.String() + port
+
+		qrterminal.GenerateWithConfig(url, qrterminal.Config{
+			Writer:    os.Stdout,
+			Level:     qrterminal.L,
+			BlackChar: qrterminal.BLACK,
+			WhiteChar: qrterminal.WHITE,
+			QuietZone: 1,
+		})
+
+		cmd.Println()
+		cmd.Println("Or access this link: ", url)
+		cmd.Println()
+		cmd.Println("Press ctrl+c to stop sharing")
+
+		http.ListenAndServe(port, http.FileServer(http.Dir(targetDir)))
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -42,40 +87,20 @@ func Execute() {
 	cobra.CheckErr(rootCmd.Execute())
 }
 
-func init() {
-	cobra.OnInitialize(initConfig)
-
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.go-gopher-cli.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+func ExitWithError(v any) {
+	fmt.Println(v)
+	os.Exit(1)
 }
 
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
-
-		// Search config in home directory with name ".go-gopher-cli" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigType("yaml")
-		viper.SetConfigName(".go-gopher-cli")
+// Get preferred outbound ip of this machine
+func GetOutboundIP() net.IP {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Fatal(err)
 	}
+	defer conn.Close()
 
-	viper.AutomaticEnv() // read in environment variables that match
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
 
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
-	}
+	return localAddr.IP
 }
