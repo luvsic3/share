@@ -1,61 +1,42 @@
-# go-gopher-cli
+# share
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/scraly/learning-go-by-examples)](https://goreportcard.com/report/github.com/scraly/learning-go-by-examples)
+Share directories and files from the CLI to iOS and Android devices without the need of an extra client app
 
-This repo contains a simple CLI (Command Line Interface) application in Go, with a basic code organization.
-We use:
-* net/http package to retrieve our cute Gophers
-* Cobra for creating powerful modern CLI applications
-* Viper to ...
+We use Cobra for creating powerful modern CLI applications, [Taskfile](https://dev.to/stack-labs/introduction-to-taskfile-a-makefile-alternative-h92) (a Makefile alternative). 
 
-go-gopher-cli use [Taskfile](https://dev.to/stack-labs/introduction-to-taskfile-a-makefile-alternative-h92) (a Makefile alternative). 
+## Usage
 
-Please read the [Learning Go by examples: part 3 - Create a CLI app in Go](https://dev.to/aurelievache/learning-go-by-examples-part-3-create-a-cli-app-in-go-1h43) article in order to know more about this Git repository.
+```
+Usage:
+  share /path/to/directory [flags]
+  share [command]
+
+Available Commands:
+  clipboard   Share Clipboard content
+  completion  generate the autocompletion script for the specified shell
+  help        Help about any command
+
+Flags:
+  -h, --help              help for share
+      --ip string         Your machine public ip address
+  -P, --password string   Set basic authentication password
+  -U, --username string   Set basic authentication username
+
+Use "share [command] --help" for more information about a command.
+```
 
 ## Pre-requisits
 
 Install Go in 1.16 version minimum.
 
-or:
-
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/scraly/learning-go-by-examples/tree/main/go-gopher-cli)
-
 ## Build the app
-
-`$ go build -o bin/go-gopher-cli main.go`
-
-or
 
 `$ task build`
 
 ## Run the app
 
-`$ ./bin/go-gopher-cli`
-
-or
-
 `$ task run`
 
-## Test the app
+## Credit
 
-```
-$ ./bin/gopher-cli
-Gopher CLI application written in Go.
-
-Usage:
-  go-gopher-cli [command]
-
-Available Commands:
-  completion  generate the autocompletion script for the specified shell
-  get         This command will get the desired Gopher
-  help        Help about any command
-...
-
-
-$ ./bin/gopher-cli get friends
-Try to get 'friends' Gopher...
-Perfect! Just saved in friends.png!
-
-$ file friends.png
-friends.png: PNG image data, 1156 x 882, 8-bit/color RGBA, non-interlaced
-```
+This project is deeply inspired by [sharing](https://github.com/parvardegr/sharing)
