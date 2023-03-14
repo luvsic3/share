@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"crypto/sha256"
+	"crypto/subtle"
 	"fmt"
 	"log"
 	"net"
@@ -15,7 +17,9 @@ import (
 const port = ":8080"
 const protocol = "http://"
 
-var IpFlag string
+var ipFlag string
+var usernameFlag string
+var passwordFlag string
 
 type any = interface{}
 
@@ -45,14 +49,48 @@ var rootCmd = &cobra.Command{
 
 		printQR(cmd)
 
-		http.ListenAndServe(port, http.FileServer(http.Dir(targetDir)))
+		http.HandleFunc("/", basicAuth(
+			func(w http.ResponseWriter, req *http.Request) {
+				http.FileServer(http.Dir(targetDir)).ServeHTTP(w, req)
+			}))
+		http.ListenAndServe(port, nil)
 	},
+}
+
+func basicAuth(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// if no username and password is set, skip authentication
+		if usernameFlag == "" && passwordFlag == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		username, password, ok := r.BasicAuth()
+		if ok {
+			usernameHash := sha256.Sum256([]byte(username))
+			passwordHash := sha256.Sum256([]byte(password))
+			expectedUsernameHash := sha256.Sum256([]byte(usernameFlag))
+			expectedPasswordHash := sha256.Sum256([]byte(passwordFlag))
+
+			usernameMatch := (subtle.ConstantTimeCompare(usernameHash[:], expectedUsernameHash[:]) == 1)
+			passwordMatch := (subtle.ConstantTimeCompare(passwordHash[:], expectedPasswordHash[:]) == 1)
+
+			if usernameMatch && passwordMatch {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+
+		w.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	})
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	rootCmd.PersistentFlags().StringVar(&IpFlag, "ip", "", "Your machine public ip address")
+	rootCmd.PersistentFlags().StringVar(&ipFlag, "ip", "", "Your machine public ip address")
+	rootCmd.PersistentFlags().StringVarP(&usernameFlag, "username", "U", "", "Set basic authentication username")
+	rootCmd.PersistentFlags().StringVarP(&passwordFlag, "password", "P", "", "Set basic authentication password")
 	cobra.CheckErr(rootCmd.Execute())
 }
 
@@ -65,8 +103,8 @@ func printQR(cmd *cobra.Command) {
 	cmd.Println("Scan the QR-Code to access directory on your phone")
 	cmd.Println()
 
-	var ip string = IpFlag
-	if IpFlag == "" {
+	var ip string = ipFlag
+	if ipFlag == "" {
 		ip = GetOutboundIP().String()
 	}
 

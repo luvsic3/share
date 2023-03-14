@@ -24,9 +24,9 @@ var clipboardCmd = &cobra.Command{
 			ExitWithError("Empty clipboard content")
 		}
 
-		http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+		http.HandleFunc("/", basicAuth(func(w http.ResponseWriter, req *http.Request) {
 			io.WriteString(w, data)
-		})
+		}))
 
 		printQR(cmd)
 		http.ListenAndServe(port, nil)
