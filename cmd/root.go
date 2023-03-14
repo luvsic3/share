@@ -15,6 +15,8 @@ import (
 const port = ":8080"
 const protocol = "http://"
 
+var IpFlag string
+
 type any = interface{}
 
 // rootCmd represents the base command when called without any subcommands
@@ -50,6 +52,7 @@ var rootCmd = &cobra.Command{
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	rootCmd.PersistentFlags().StringVar(&IpFlag, "ip", "", "Your machine public ip address")
 	cobra.CheckErr(rootCmd.Execute())
 }
 
@@ -62,8 +65,12 @@ func printQR(cmd *cobra.Command) {
 	cmd.Println("Scan the QR-Code to access directory on your phone")
 	cmd.Println()
 
-	ip := GetOutboundIP()
-	url := protocol + ip.String() + port
+	var ip string = IpFlag
+	if IpFlag == "" {
+		ip = GetOutboundIP().String()
+	}
+
+	url := protocol + ip + port
 
 	qrterminal.GenerateWithConfig(url, qrterminal.Config{
 		Writer:    os.Stdout,
